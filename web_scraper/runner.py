@@ -1,9 +1,9 @@
 from enum import Enum
-from typing import Any
 
-from scrapy import Spider
+from argparse import Namespace, ArgumentParser
+
+from .spiders import DaftSpider
 from scrapy.crawler import CrawlerProcess
-from scrapy.http import Response
 
 
 class WebSources(Enum):
@@ -15,22 +15,20 @@ class WebSources(Enum):
         return str(self.value)
 
 
-class MySpider(Spider):  # type: ignore
-    name = "my-spider"
-
-    def __init__(self, my_arg: str = '', my_arg2: str = '') -> None:
-        super(MySpider, self).__init__()
-        print(f'my_arg: {my_arg}, my_arg2: {my_arg2}')
-
-    def parse(self, response: Response) -> None:
-        pass
-
-
 class Runner:
     def __init__(self) -> None:
         self._process = CrawlerProcess()
 
-    def run(self, args: Any) -> None:
-        print("Hello world in Runner!")
-        self._process.crawl(MySpider, my_arg='my_arg')
+        parser = ArgumentParser(description='Extract data from some websites for testing.')
+        parser.add_argument('source', type=WebSources, choices=WebSources,
+                        help='Source from where to extract the data.')
+
+        self._parser = parser
+
+    def run(self, args: Namespace) -> None:
+        if args.source == WebSources.DAFT:
+            self._process.crawl(DaftSpider)
         self._process.start()
+
+    def get_arg_parser(self) -> ArgumentParser:
+        return self._parser
