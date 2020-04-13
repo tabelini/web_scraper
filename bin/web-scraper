@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from web_scraper import Runner, WebSources
+from web_scraper import Runner
 
 
 def main():
