@@ -15,7 +15,8 @@ def runner():
     return result
 
 
-@pytest.mark.parametrize('name, value', [('DAFT', 'daft'), ('MY_HOME', 'my_home')])
+@pytest.mark.parametrize('name, value', [('HOUSES_FOR_SALE', 'houses_for_sale'),
+                                         ('HOUSES_FOR_RENT', 'houses_for_rent')])
 def test_web_sources_should_return_the_value_in_str(name, value):
     assert str(WebSources[name]) == value
 
@@ -27,7 +28,7 @@ def test_crawler_should_run_with_provided_settings(crawler_process_mock):
 
 
 def test_runner_should_parse_daft_when_asked(runner):
-    runner.run(runner.get_arg_parser().parse_args(args=['daft']))
+    runner.run(runner.get_arg_parser().parse_args(args=['houses_for_sale']))
     runner._process.crawl.assert_called_once_with(DaftSaleUsedSpider)
     runner._process.start.assert_called_once_with()
 
