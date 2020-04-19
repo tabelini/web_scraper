@@ -5,8 +5,6 @@ from argparse import Namespace, ArgumentParser
 from .spiders import DaftSaleUsedSpider
 from scrapy.crawler import CrawlerProcess
 
-DEFAULT_AREAS = 'dublin-1,dublin-2'
-
 USER_AGENT_SETTING = 'USER_AGENT'
 
 
@@ -21,12 +19,30 @@ class WebSources(Enum):
 
 class Runner:
     def __init__(self) -> None:
-        parser = ArgumentParser(description='Extract data from some websites for testing.')
-        parser.add_argument('source', type=WebSources, choices=WebSources,
-                            help='Source from where to extract the data.')
-        parser.add_argument('--areas-string', type=str, default=DEFAULT_AREAS,
-                            help='Areas that you are looking for link it appears on Daft.ie.'
-                                 'i.e: "dublin-1,dublin-2"')
+        parser = ArgumentParser(description='Extract data from some websites.',
+                                prog='web-acraper',
+                                usage='web-scraper houses-for-sale --areas-string "dublin-4,dublin-6"')
+        sub_parsers = parser.add_subparsers(title='Avalilable crawlers', required=True)
+        parser_houses_for_sale = sub_parsers.add_parser('houses-for-sale',
+                                                        help='scrape for used houses for sale data')
+        parser_houses_for_sale.set_defaults(source=WebSources.HOUSES_FOR_SALE, type=WebSources)
+        parser_houses_for_sale.add_argument('--areas-string', type=str,
+                                            help='Areas that you are looking for, this is contained'
+                                                 ' on the url of the Daft.ie after an advanced'
+                                                 ' search selecting the areas of interest.'
+                                                 'i.e: "dublin-1,dublin-2"')
+        parser_houses_for_sale.add_argument('--min-price', type=int,
+                                            help='Minimum price to be searched for.')
+        parser_houses_for_sale.add_argument('--max-price', type=int,
+                                            help='Maximum price to be searched for.')
+        parser_houses_for_sale.add_argument('--min-beds', type=int,
+                                            help='Minimum beds to be searched for.')
+        parser_houses_for_sale.add_argument('--max-beds', type=int,
+                                            help='Maximum beds to be searched for.')
+
+        parser_houses_for_rent = sub_parsers.add_parser('houses-for-rent',
+                                                        help='scrape for houses for rent data')
+        parser_houses_for_rent.set_defaults(source=WebSources.HOUSES_FOR_RENT, type=WebSources)
 
         self._parser = parser
 
@@ -41,7 +57,15 @@ class Runner:
 
     def run(self, args: Namespace) -> None:
         if args.source == WebSources.HOUSES_FOR_SALE:
-            self._process.crawl(DaftSaleUsedSpider, areas_string=args.areas_string)
+            self._process.crawl(DaftSaleUsedSpider,
+                                areas_string=args.areas_string,
+                                min_price=args.min_price,
+                                max_price=args.max_price,
+                                min_beds=args.min_beds,
+                                max_beds=args.max_beds)
+        else:
+            print("Parse not implemented yet!!")
+            exit(1)
         self._process.start()
 
     def get_arg_parser(self) -> ArgumentParser:

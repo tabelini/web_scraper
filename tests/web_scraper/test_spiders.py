@@ -98,12 +98,20 @@ FULL_LINK_1 = 'http://site.com/link_1'
 SHORT_LINK_1 = 'link_1'
 SHORT_LINK_2 = 'link_2'
 
+INITIAL_URL = DAFT_ADDRESS + DUBLIN_CITY + PROPERTIES_FOR_SALE
+INITIAL_ARGS = "/?ad_type=sale"
 INITIAL_AREAS = "dublin-2,dublin-3"
+MIN_PRICE = 1000
+MAX_PRICE = 1000000
+MIN_AND_MAX_PRICE_URL = '&s%5Bmnp%5D=1000&s%5Bmxp%5D=1000000'
+MIN_BEDS = 2
+MAX_BEDS = 4
+MIN_AND_MAX_BEDS_URL = '&s%5Bmnb%5D=2&s%5Bmxb%5D=4'
 
 
 @pytest.fixture
 def daft_sale_used():
-    return DaftSaleUsedSpider(INITIAL_AREAS)
+    return DaftSaleUsedSpider()
 
 
 @pytest.fixture
@@ -113,9 +121,20 @@ def response():
     return result
 
 
-def test_daft_sale_used_spider_init(daft_sale_used):
-    assert daft_sale_used.start_urls == [
-        DAFT_ADDRESS + DUBLIN_CITY + PROPERTIES_FOR_SALE + INITIAL_AREAS]
+@pytest.mark.parametrize("spider, expected_start_url", [
+    (DaftSaleUsedSpider(),
+     INITIAL_URL + INITIAL_ARGS),
+    (DaftSaleUsedSpider(areas_string=INITIAL_AREAS),
+     INITIAL_URL + "/" + INITIAL_AREAS + INITIAL_ARGS),
+    (DaftSaleUsedSpider(min_price=MIN_PRICE, max_price=MAX_PRICE),
+     INITIAL_URL + INITIAL_ARGS + MIN_AND_MAX_PRICE_URL),
+    (DaftSaleUsedSpider(areas_string=INITIAL_AREAS, min_price=MIN_PRICE, max_price=MAX_PRICE),
+     INITIAL_URL + "/" + INITIAL_AREAS + INITIAL_ARGS + MIN_AND_MAX_PRICE_URL),
+    (DaftSaleUsedSpider(areas_string=INITIAL_AREAS, min_beds=MIN_BEDS, max_beds=MAX_BEDS),
+     INITIAL_URL + "/" + INITIAL_AREAS + INITIAL_ARGS + MIN_AND_MAX_BEDS_URL),
+])
+def test_daft_sale_used_spider_init(spider, expected_start_url):
+    assert spider.start_urls == [expected_start_url]
 
 
 @patch('web_scraper.spiders.Request')

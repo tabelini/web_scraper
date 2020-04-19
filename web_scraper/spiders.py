@@ -32,11 +32,28 @@ STATISTICS_SELECTOR = '.PropertyStatistics__iconsContainer .PropertyStatistics__
 class DaftSaleUsedSpider(Spider):  # type: ignore
     name = "DaftSaleUsed"
 
-    def __init__(self, areas_string: str = "dublin-1,dublin-2") -> None:
+    def __init__(self,
+                 areas_string: Optional[str] = None,
+                 min_price: Optional[int] = None,
+                 max_price: Optional[int] = None,
+                 min_beds: Optional[int] = None,
+                 max_beds: Optional[int] = None,
+                 ) -> None:
         super(DaftSaleUsedSpider, self).__init__()
 
-        self.start_urls = [DAFT_ADDRESS + DUBLIN_CITY + PROPERTIES_FOR_SALE +
-                           areas_string]
+        initial_url = DAFT_ADDRESS + DUBLIN_CITY + PROPERTIES_FOR_SALE
+
+        if areas_string:
+            initial_url += "/" + areas_string
+
+        url_args = "/?ad_type=sale"
+
+        url_args += DaftSaleUsedSpider._url_arg('mnp', min_price)
+        url_args += DaftSaleUsedSpider._url_arg('mxp', max_price)
+        url_args += DaftSaleUsedSpider._url_arg('mnb', min_beds)
+        url_args += DaftSaleUsedSpider._url_arg('mxb', max_beds)
+
+        self.start_urls = [initial_url + url_args]
 
     def parse(self, response: Response) -> Generator[Request, None, None]:
         for daft_property in response.css(PROPERTY_CARD_SELECTOR):
@@ -62,6 +79,13 @@ class DaftSaleUsedSpider(Spider):  # type: ignore
             'updated_at': DaftExtractor.extract_updated_at(response),
             'views': DaftExtractor.extract_views(response),
         }
+
+    @staticmethod
+    def _url_arg(arg_name: str, arg_value: Any) -> str:
+        if arg_value:
+            return f'&s%5B{arg_name}%5D={arg_value}'
+        else:
+            return ''
 
 
 class DaftExtractor:
@@ -177,7 +201,7 @@ class DaftExtractor:
         result = ""
         for line in description_text:
             if line_text := line.strip():
-                result += line_text+" "
+                result += line_text + " "
         return result.strip()
 
     @staticmethod
