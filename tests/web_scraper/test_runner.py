@@ -1,11 +1,13 @@
 from unittest import mock
-from unittest.mock import Mock, call
+from unittest.mock import Mock
 
 import pytest
 
-from web_scraper.runner import USER_AGENT_SETTING
+from web_scraper.runner import USER_AGENT_SETTING, DEFAULT_AREAS
 from web_scraper.spiders import DaftSaleUsedSpider
 from web_scraper import Runner, WebSources
+
+AREAS_TO_LOOK = 'areas_to_look'
 
 
 @pytest.fixture()
@@ -27,9 +29,16 @@ def test_crawler_should_run_with_provided_settings(crawler_process_mock):
     crawler_process_mock.assert_called_once_with(settings=runner.crawler_settings)
 
 
-def test_runner_should_parse_daft_when_asked(runner):
+def test_runner_should_parse_daft(runner):
     runner.run(runner.get_arg_parser().parse_args(args=['houses_for_sale']))
-    runner._process.crawl.assert_called_once_with(DaftSaleUsedSpider)
+    runner._process.crawl.assert_called_once_with(DaftSaleUsedSpider, areas_string=DEFAULT_AREAS)
+    runner._process.start.assert_called_once_with()
+
+
+def test_runner_should_parse_daft_with_correct_areas(runner):
+    runner.run(runner.get_arg_parser().parse_args(args=['houses_for_sale', '--areas-string',
+                                                        AREAS_TO_LOOK]))
+    runner._process.crawl.assert_called_once_with(DaftSaleUsedSpider, areas_string=AREAS_TO_LOOK)
     runner._process.start.assert_called_once_with()
 
 
