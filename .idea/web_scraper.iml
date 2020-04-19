@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="JAVA_MODULE" version="4">
+  <component name="CheckStyle-IDEA-Module">
+    <option name="configuration">
+      <map />
+    </option>
+  </component>
   <component name="FacetManager">
     <facet type="Python" name="Python">
-      <configuration sdkName="Python 2.7 (AugeasConsistencyChecker)" />
+      <configuration sdkName="Python 3.8 (web_scraper)" />
     </facet>
   </component>
   <component name="NewModuleRootManager" inherit-compiler-output="true">
@@ -14,7 +19,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="Python 2.7 (AugeasConsistencyChecker) interpreter library" level="application" />
+    <orderEntry type="library" name="Python 3.8 (web_scraper) interpreter library" level="application" />
   </component>
   <component name="TestRunnerService">
     <option name="PROJECT_TEST_RUNNER" value="pytest" />
