@@ -250,20 +250,3 @@ class ExtractorException(Exception):
 
     def __str__(self) -> str:
         return self.message
-
-
-class JsonWriterPipeline:
-    def __init__(self) -> None:
-        self.data: List[Any] = []
-
-    def open_spider(self, spider: Spider) -> None:
-        pass
-
-    def close_spider(self, spider: Spider) -> None:
-        with open('/tmp/data.json', 'w') as outfile:
-            json.dump(self.data, outfile)
-
-    def process_item(self, item: Any, spider: Spider) -> Any:
-        print(f"Processing: {item}")
-        self.data.append(item)
-        return item

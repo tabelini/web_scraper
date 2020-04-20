@@ -21,7 +21,8 @@ class Runner:
     def __init__(self) -> None:
         parser = ArgumentParser(description='Extract data from some websites.',
                                 prog='web-acraper',
-                                usage='web-scraper houses-for-sale --areas-string "dublin-4,dublin-6"')
+                                usage='web-scraper houses-for-sale '
+                                      '--areas-string "dublin-4,dublin-6"')
         sub_parsers = parser.add_subparsers(title='Avalilable crawlers', required=True)
         parser_houses_for_sale = sub_parsers.add_parser('houses-for-sale',
                                                         help='scrape for used houses for sale data')
@@ -50,7 +51,7 @@ class Runner:
             USER_AGENT_SETTING: 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible;'
                                 ' Googlebot/2.1; +http://www.google.com/bot.html)'
                                 ' Chrome/80.1.2.4‡ Safari/537.36',
-            'ITEM_PIPELINES': {'web_scraper.spiders.JsonWriterPipeline': 250}
+            'ITEM_PIPELINES': {'web_scraper.pipelines.JsonWriterPipeline': 250}
         }
 
         self._process = CrawlerProcess(settings=self.crawler_settings)
