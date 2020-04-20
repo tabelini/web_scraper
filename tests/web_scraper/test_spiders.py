@@ -8,7 +8,11 @@ from web_scraper.spiders import DaftSaleUsedSpider, DAFT_ADDRESS, DUBLIN_CITY, P
     PROPERTY_CARD_SELECTOR, LINK_SELECTOR, DaftExtractor, PROPERTY_TYPE_SELECTOR, \
     BER_RATING_IMAGE_SELECTOR, PRICE_SELECTOR, ExtractorException, QUICK_DETAILS_SELECTOR, \
     FLOOR_AREA_SELECTOR, MAIN_ADDRESS_SELECTOR, EIR_CODE_SELECTOR, STREET_VIEW_SELECTOR, \
-    DESCRIPTION_SELECTOR, STATISTICS_SELECTOR
+    DESCRIPTION_SELECTOR, STATISTICS_SELECTOR, NEXT_PAGE_SELECTOR
+
+NEXT_PAGE_FULL_ADDRESS = 'NEXT_PAGE_FULL_ADDRESS'
+
+NEXT_PAGE_ADDRESS = 'next_page'
 
 PROPERTY_TYPE = 'Property type'
 PROPERTY_TYPE_RAW = '\n            Property type\n    '
@@ -142,7 +146,10 @@ def test_daft_sale_should_parse_property_cards(request_mock, daft_sale_used):
     mock_list_response = MagicMock()
     property1 = _generate_response_for_css_selector(SHORT_LINK_1)
     property2 = _generate_response_for_css_selector(SHORT_LINK_2)
-    mock_list_response.css.return_value = [property1, property2]
+    next_page_css = MagicMock()
+    next_page_css.get.return_value = None
+
+    mock_list_response.css.side_effect = [[property1, property2], next_page_css]
     mock_list_response.urljoin.side_effect = [FULL_LINK_1, FULL_LINK_2]
 
     detailed_request_generator = daft_sale_used.parse(mock_list_response)
@@ -150,7 +157,8 @@ def test_daft_sale_should_parse_property_cards(request_mock, daft_sale_used):
     results = [value for value in detailed_request_generator]
     assert len(results) == 2
 
-    mock_list_response.css.assert_called_once_with(PROPERTY_CARD_SELECTOR)
+    mock_list_response.css.assert_has_calls(
+        [call(PROPERTY_CARD_SELECTOR), call(NEXT_PAGE_SELECTOR)])
     property1.css.assert_called_once_with(LINK_SELECTOR)
     property2.css.assert_called_once_with(LINK_SELECTOR)
 
@@ -158,6 +166,23 @@ def test_daft_sale_should_parse_property_cards(request_mock, daft_sale_used):
 
     request_mock.assert_has_calls([call(FULL_LINK_1, callback=daft_sale_used.parse_detailed_page),
                                    call(FULL_LINK_2, callback=daft_sale_used.parse_detailed_page)])
+
+
+@patch('web_scraper.spiders.Request')
+def test_daft_sale_should_try_to_parse_next_page(request_mock, daft_sale_used):
+    mock_list_response = MagicMock()
+    next_page_css = MagicMock()
+    next_page_css.get.return_value = NEXT_PAGE_ADDRESS
+    mock_list_response.css.side_effect = [[], next_page_css]
+    mock_list_response.urljoin.side_effect = [NEXT_PAGE_FULL_ADDRESS]
+
+    detailed_request_generator = daft_sale_used.parse(mock_list_response)
+    results = [value for value in detailed_request_generator]
+
+    mock_list_response.css.assert_has_calls(
+        [call(PROPERTY_CARD_SELECTOR), call(NEXT_PAGE_SELECTOR)])
+    mock_list_response.urljoin.assert_has_calls([call(NEXT_PAGE_ADDRESS)])
+    request_mock.assert_called_once_with(NEXT_PAGE_FULL_ADDRESS, callback=daft_sale_used.parse)
 
 
 @patch('web_scraper.spiders.DaftExtractor')

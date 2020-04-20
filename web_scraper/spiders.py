@@ -5,6 +5,8 @@ from typing import Generator, Any, Dict, List, Optional
 from scrapy import Spider, Request
 from scrapy.http import Response
 
+NEXT_PAGE_SELECTOR = '.next_page a::attr(href)'
+
 DUBLIN_CITY_SECTOR = 'Dublin City'
 
 BER_RATING_EXEMPT = 'EXEMPT'
@@ -59,6 +61,12 @@ class DaftSaleUsedSpider(Spider):  # type: ignore
         for daft_property in response.css(PROPERTY_CARD_SELECTOR):
             detailed_link = response.urljoin(daft_property.css(LINK_SELECTOR).get())
             yield Request(detailed_link, callback=self.parse_detailed_page)
+
+        next_page = response.css(NEXT_PAGE_SELECTOR).get()
+        print(next_page)
+        if next_page:
+            next_page_url = response.urljoin(next_page)
+            yield Request(next_page_url, callback=self.parse)
 
     def parse_detailed_page(self, response: Response) -> Generator[Dict[str, Any], None, None]:
         yield {
