@@ -5,10 +5,10 @@ import pytest
 from scrapy.http import Response
 
 from web_scraper.spiders import DaftSaleUsedSpider, DAFT_ADDRESS, DUBLIN_CITY, PROPERTIES_FOR_SALE, \
-    PROPERTY_CARD_SELECTOR, LINK_SELECTOR, DaftExtractor, PROPERTY_TYPE_SELECTOR, \
-    BER_RATING_IMAGE_SELECTOR, PRICE_SELECTOR, ExtractorException, QUICK_DETAILS_SELECTOR, \
-    FLOOR_AREA_SELECTOR, MAIN_ADDRESS_SELECTOR, EIR_CODE_SELECTOR, STREET_VIEW_SELECTOR, \
-    DESCRIPTION_SELECTOR, STATISTICS_SELECTOR, NEXT_PAGE_SELECTOR
+    PROPERTY_CARD_SELECTOR, LINK_SELECTOR, DaftExtractor, PROPERTY_TYPE_SELECTOR, PRICE_SELECTOR, \
+    ExtractorException, FLOOR_AREA_SELECTOR, MAIN_ADDRESS_SELECTOR, STREET_VIEW_SELECTOR, \
+    DESCRIPTION_SELECTOR, STATISTICS_SELECTOR, NEXT_PAGE_SELECTOR, BER_RATING_ALT_SELECTOR, BEDS_SELECTOR, \
+    BATHS_SELECTOR
 
 NEXT_PAGE_FULL_ADDRESS = 'NEXT_PAGE_FULL_ADDRESS'
 
@@ -17,11 +17,8 @@ NEXT_PAGE_ADDRESS = 'next_page'
 PROPERTY_TYPE = 'Property type'
 PROPERTY_TYPE_RAW = '\n            Property type\n    '
 
-BER_RATING_RAW = 'https://c1.dmstatic.com/944/i/ber/ber_A1.svg'
 BER_RATING = 'A1'
-BER_RATING_RAW_SINGLE_CHAR = 'https://c1.dmstatic.com/944/i/ber/ber_G.svg'
-BER_RATING_SINGLE_CHAR = 'G'
-BER_RATING_RAW_EXEMPT = 'https://c1.dmstatic.com/944/i/ber/ber_SINo666of2006exempt.svg'
+BER_RATING_RAW_EXEMPT = 'SI_666'
 BER_RATING_EXEMPT = None
 
 PRICE_RAW = '€375,000'
@@ -35,30 +32,16 @@ PRICE_INVALID_RAW = 'INVALID'
 PRICE_ON_APPLICATION_RAW = 'Price On Application'
 PRICE_INVALID_EXCEPTION_MSG = r"Error .*pars.*price.*:'INVALID'"
 
-QUICK_DETAILS_RAW_BED_FIRST = ['Number of beds is 3', 'Number of bathroom is 2']
-QUICK_DETAILS_RAW_BATH_FIRST = ['Number of bathroom is 2', 'Number of beds is 3']
-QUICK_DETAILS_RAW_ONLY_BED = ['Number of beds is 3']
-QUICK_DETAILS_RAW_ONLY_BATH = ['Number of bathroom is 2']
+BEDROOMS_RAW = '3 Bed'
+BATHROOMS_RAW = '2 Bath'
 BEDROOMS = 3
 BEDROOMS_NO_VALUE = None
 BATHROOMS = 2
 BATHROOMS_NO_VALUE = None
 
-FLOOR_AREA_RAW = ['\\n                                                    ',
-                  '\\n                        '
-                  '\\n                                                    ',
-                  '\\n                            54 m',
-                  '\\n                        '
-                  '\\n                        '
-                  '\\n                    ']
+FLOOR_AREA_RAW = '54 m²'
 FLOOR_AREA = 54
-FLOOR_AREA_DECIMAL_RAW = ['\\n                                                    ',
-                          '\\n                        '
-                          '\\n                                                    ',
-                          '\\n                            50.3 m',
-                          '\\n                        '
-                          '\\n                        '
-                          '\\n                    ']
+FLOOR_AREA_DECIMAL_RAW = '50.3 m²'
 FLOOR_AREA_DECIMAL = 50.3
 
 MAIN_ADDRESS_RAW = "Apartment 12, Stewart Hall, Ryder's Row, Dublin 1, Dublin City Centre"
@@ -244,21 +227,9 @@ def test_daft_sale_should_parse_the_sector(extractor, daft_sale_used, response):
 
 
 @patch('web_scraper.spiders.DaftExtractor')
-def test_daft_sale_should_parse_the_district(extractor, daft_sale_used, response):
-    _assert_extractor_called(daft_sale_used, response, extractor.extract_district,
-                             MAIN_ADDRESS_DISTRICT, 'district')
-
-
-@patch('web_scraper.spiders.DaftExtractor')
 def test_daft_sale_should_parse_the_region(extractor, daft_sale_used, response):
     _assert_extractor_called(daft_sale_used, response, extractor.extract_region,
                              MAIN_ADDRESS_DISTRICT, 'region')
-
-
-@patch('web_scraper.spiders.DaftExtractor')
-def test_daft_sale_should_parse_the_eir_code(extractor, daft_sale_used, response):
-    _assert_extractor_called(daft_sale_used, response, extractor.extract_eir_code,
-                             MAIN_ADDRESS_DISTRICT, 'eir_code')
 
 
 @patch('web_scraper.spiders.DaftExtractor')
@@ -291,13 +262,12 @@ def test_daft_extractor_should_extract_property_type():
 
 
 @pytest.mark.parametrize('raw_value, expected_value', [
-    (BER_RATING_RAW, BER_RATING),
-    (BER_RATING_RAW_SINGLE_CHAR, BER_RATING_SINGLE_CHAR),
+    (BER_RATING, BER_RATING),
     (BER_RATING_RAW_EXEMPT, BER_RATING_EXEMPT),
 ])
 def test_daft_extractor_should_extract_ber_rating(raw_value, expected_value):
     _assert_parsed_by_extractor(DaftExtractor.extract_ber_rating,
-                                BER_RATING_IMAGE_SELECTOR, raw_value, expected_value)
+                                BER_RATING_ALT_SELECTOR, raw_value, expected_value)
 
 
 @pytest.mark.parametrize('raw_value, expected_value, exception_msg', [
@@ -313,25 +283,21 @@ def test_daft_extractor_should_extract_price(raw_value, expected_value, exceptio
 
 
 @pytest.mark.parametrize('raw_value, expected_value', [
-    (QUICK_DETAILS_RAW_BED_FIRST, BEDROOMS),
-    (QUICK_DETAILS_RAW_BATH_FIRST, BEDROOMS),
-    (QUICK_DETAILS_RAW_ONLY_BED, BEDROOMS),
-    (QUICK_DETAILS_RAW_ONLY_BATH, BEDROOMS_NO_VALUE),
+    (BEDROOMS_RAW, BEDROOMS),
+    (None, BEDROOMS_NO_VALUE)
 ])
 def test_daft_extractor_should_extract_bed_rooms(raw_value, expected_value):
     _assert_parsed_by_extractor(DaftExtractor.extract_bedrooms,
-                                QUICK_DETAILS_SELECTOR, raw_value, expected_value)
+                                BEDS_SELECTOR, raw_value, expected_value)
 
 
 @pytest.mark.parametrize('raw_value, expected_value', [
-    (QUICK_DETAILS_RAW_BED_FIRST, BATHROOMS),
-    (QUICK_DETAILS_RAW_BATH_FIRST, BATHROOMS),
-    (QUICK_DETAILS_RAW_ONLY_BED, BATHROOMS_NO_VALUE),
-    (QUICK_DETAILS_RAW_ONLY_BATH, BATHROOMS),
+    (BATHROOMS_RAW, BATHROOMS),
+    (None, BATHROOMS_NO_VALUE),
 ])
 def test_daft_extractor_should_extract_bath_rooms(raw_value, expected_value):
     _assert_parsed_by_extractor(DaftExtractor.extract_bathrooms,
-                                QUICK_DETAILS_SELECTOR, raw_value, expected_value)
+                                BATHS_SELECTOR, raw_value, expected_value)
 
 
 @pytest.mark.parametrize('raw_value, expected_value', [
@@ -364,17 +330,6 @@ def test_daft_extractor_should_extract_sector(raw_value, expected_value):
 
 
 @pytest.mark.parametrize('raw_value, expected_value', [
-    (MAIN_ADDRESS_RAW, MAIN_ADDRESS_DISTRICT),
-    (MAIN_ADDRESS_SINGLE_RAW, None),
-    (MAIN_ADDRESS_NO_DISTRICT_DUN_LAOGHAIRE, None),
-    (MAIN_ADDRESS_NO_DISTRICT_MALAHIDE, None),
-])
-def test_daft_extractor_should_extract_district(raw_value, expected_value):
-    _assert_parsed_by_extractor(DaftExtractor.extract_district,
-                                MAIN_ADDRESS_SELECTOR, raw_value, expected_value)
-
-
-@pytest.mark.parametrize('raw_value, expected_value', [
     (MAIN_ADDRESS_RAW, MAIN_ADDRESS_REGION),
     (MAIN_ADDRESS_SINGLE_RAW, None),
     (MAIN_ADDRESS_NO_DISTRICT_DUN_LAOGHAIRE, MAIN_ADDRESS_NO_DISTRICT_DUN_LAOGHAIRE_REGION),
@@ -383,15 +338,6 @@ def test_daft_extractor_should_extract_district(raw_value, expected_value):
 def test_daft_extractor_should_extract_region(raw_value, expected_value):
     _assert_parsed_by_extractor(DaftExtractor.extract_region,
                                 MAIN_ADDRESS_SELECTOR, raw_value, expected_value)
-
-
-@pytest.mark.parametrize('raw_value, expected_value', [
-    (EIR_CODE_RAW, EIR_CODE),
-    (EIR_CODE_NO_VALUE_RAW, EIR_CODE_NO_VALUE),
-])
-def test_daft_extractor_should_extract_eir_code(raw_value, expected_value):
-    _assert_parsed_by_extractor(DaftExtractor.extract_eir_code,
-                                EIR_CODE_SELECTOR, raw_value, expected_value)
 
 
 @pytest.mark.parametrize('raw_value, expected_value', [

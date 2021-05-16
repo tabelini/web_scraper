@@ -1,6 +1,5 @@
-import json
 import re
-from typing import Generator, Any, Dict, List, Optional
+from typing import Generator, Any, Dict, Optional
 
 from scrapy import Spider, Request
 from scrapy.http import Response
@@ -9,7 +8,8 @@ NEXT_PAGE_SELECTOR = '.next_page a::attr(href)'
 
 DUBLIN_CITY_SECTOR = 'Dublin City'
 
-BER_RATING_EXEMPT = 'EXEMPT'
+BER_RATING_EXEMPT_CODE = 'SI_666'
+BER_RATING_EXEMPT = None
 
 PROPERTY_CARD_SELECTOR = ".PropertyCardContainer__container "
 
@@ -18,17 +18,16 @@ DUBLIN_CITY = "/dublin-city"
 PROPERTIES_FOR_SALE = "/property-for-sale"
 
 LINK_SELECTOR = ".PropertyInformationCommonStyles__addressCopy--link::attr(href)"
-PROPERTY_TYPE_SELECTOR = ".QuickPropertyDetails__propertyType::text"
-MAIN_ADDRESS_SELECTOR = '.PropertyMainInformation__address::text'
-BER_RATING_IMAGE_SELECTOR = '.PropertyImage__berImage::attr(src)'
-PRICE_SELECTOR = '.PropertyInformationCommonStyles__costAmountCopy::text'
-QUICK_DETAILS_SELECTOR = ".PropertyInformationCommonStyles__quickPropertyDetailsContainer " \
-                         ".QuickPropertyDetails__iconContainer img::attr(alt)"
-FLOOR_AREA_SELECTOR = '.PropertyOverview__propertyOverviewDetails::text'
-EIR_CODE_SELECTOR = '.PropertyMainInformation__eircode::text'
-STREET_VIEW_SELECTOR = '.MapActions #LaunchStreet::attr(href)'
-DESCRIPTION_SELECTOR = '.PropertyDescription__propertyDescription::text'
-STATISTICS_SELECTOR = '.PropertyStatistics__iconsContainer .PropertyStatistics__iconData::text'
+PROPERTY_TYPE_SELECTOR = 'p[data-testid="property-type"]::text'
+MAIN_ADDRESS_SELECTOR = 'h1[data-testid="address"]::text'
+BER_RATING_ALT_SELECTOR = 'div[data-testid="ber"] > img::attr(alt)'
+PRICE_SELECTOR = 'div[data-testid="price"] > p > span::text'
+BEDS_SELECTOR = 'p[data-testid="beds"]::text'
+BATHS_SELECTOR = 'p[data-testid="baths"]::text'
+FLOOR_AREA_SELECTOR = 'p[data-testid="floor-area"]::text'
+STREET_VIEW_SELECTOR = 'a[data-testid="streetview-button"]::attr(href)'
+DESCRIPTION_SELECTOR = 'div[data-testid="description"]::text'
+STATISTICS_SELECTOR = 'div[data-testid="statistics"] > div > div > div > p::text'
 
 
 class DaftSaleUsedSpider(Spider):  # type: ignore
@@ -79,9 +78,7 @@ class DaftSaleUsedSpider(Spider):  # type: ignore
             'floor_area_m2': DaftExtractor.extract_floor_area(response),
             'main_address': DaftExtractor.extract_main_address(response),
             'sector': DaftExtractor.extract_sector(response),
-            'district': DaftExtractor.extract_district(response),
             'region': DaftExtractor.extract_region(response),
-            'eir_code': DaftExtractor.extract_eir_code(response),
             'geolocation': DaftExtractor.extract_geolocation(response),
             'description': DaftExtractor.extract_description(response),
             'updated_at': DaftExtractor.extract_updated_at(response),
@@ -101,9 +98,8 @@ class DaftExtractor:
     _price_replace_regex = re.compile("[^\\d]")
     _quick_details_regex = re.compile("^Number.* (\\w+) is .*(\\d+)$")
     _FLOOR_AREA_REGEX = re.compile(".*\\s+(\\d+(\\.\\d+)?).* m")
-    _EIR_CODE_REGEX = re.compile("\\s+(\\w{3}).(\\w{4})")
     _UPDATED_AT_REGEX = re.compile("^(\\d{1,2}).(\\d{1,2}).(\\d{4})$")
-    _ONLY_NUMBERS_REGEX = re.compile("^\\d+$")
+    _ONLY_NUMBERS_REGEX = re.compile("^(\\d+,)?\\d+$")
 
     @staticmethod
     def extract_property_type(response: Response) -> str:
@@ -112,15 +108,13 @@ class DaftExtractor:
 
     @staticmethod
     def extract_ber_rating(response: Response) -> Optional[str]:
-        ber_rating_image_url = str(DaftExtractor._extract_css_selector(
-            response, BER_RATING_IMAGE_SELECTOR))
-        result = None
-        if ber_rating_image_url:
-            if matcher := DaftExtractor._ber_rating_regex.match(ber_rating_image_url):
-                ber_rating = matcher.group(1).upper()
-                if BER_RATING_EXEMPT not in ber_rating:
-                    result = ber_rating
-        return result
+        ber_rating = str(DaftExtractor._extract_css_selector(
+            response, BER_RATING_ALT_SELECTOR))
+
+        if ber_rating == BER_RATING_EXEMPT_CODE:
+            return
+
+        return ber_rating
 
     @staticmethod
     def extract_price(response: Response) -> Optional[int]:
@@ -136,20 +130,15 @@ class DaftExtractor:
 
     @staticmethod
     def extract_bedrooms(response: Response) -> Optional[int]:
-        return DaftExtractor._extract_quick_details(response, 'beds')
+        return DaftExtractor.extract_first_int(response, BEDS_SELECTOR, 'beds')
 
     @staticmethod
     def extract_bathrooms(response: Response) -> Optional[int]:
-        return DaftExtractor._extract_quick_details(response, 'bathroom')
+        return DaftExtractor.extract_first_int(response, BATHS_SELECTOR, 'baths')
 
     @staticmethod
     def extract_floor_area(response: Response) -> Optional[float]:
-        floor_area_raw = DaftExtractor._extract_css_selector(response, FLOOR_AREA_SELECTOR, True)
-        floor_area = None
-        for floor_area_text in floor_area_raw:
-            if matcher := DaftExtractor._FLOOR_AREA_REGEX.match(floor_area_text):
-                floor_area = float(matcher.group(1))
-        return floor_area
+        return DaftExtractor.extract_first_float(response, FLOOR_AREA_SELECTOR, 'floor-area')
 
     @staticmethod
     def extract_main_address(response: Response) -> str:
@@ -166,15 +155,6 @@ class DaftExtractor:
         return result
 
     @staticmethod
-    def extract_district(response: Response) -> Optional[str]:
-        main_address_parts = str(DaftExtractor._extract_css_selector(
-            response, MAIN_ADDRESS_SELECTOR)).split(',')
-        result = None
-        if len(main_address_parts) > 2 and DUBLIN_CITY_SECTOR in main_address_parts[-1]:
-            result = main_address_parts[-2].strip()
-        return result
-
-    @staticmethod
     def extract_region(response: Response) -> Optional[str]:
         main_address_parts = str(DaftExtractor._extract_css_selector(
             response, MAIN_ADDRESS_SELECTOR)).split(',')
@@ -184,15 +164,6 @@ class DaftExtractor:
         elif len(main_address_parts) > 2:
             result = main_address_parts[-2].strip()
         return result
-
-    @staticmethod
-    def extract_eir_code(response: Response) -> Optional[str]:
-        eir_code_raw = DaftExtractor._extract_css_selector(response, EIR_CODE_SELECTOR, True)
-        eir_code = None
-        for eir_code_text in eir_code_raw:
-            if matcher := DaftExtractor._EIR_CODE_REGEX.match(eir_code_text):
-                eir_code = matcher.group(1) + '-' + matcher.group(2)
-        return eir_code
 
     @staticmethod
     def extract_geolocation(response: Response) -> Optional[str]:
@@ -228,6 +199,7 @@ class DaftExtractor:
         views = None
         for statistics_entry in statistics_raw:
             if DaftExtractor._ONLY_NUMBERS_REGEX.match(statistics_entry):
+                statistics_entry = statistics_entry.replace(",","")
                 views = int(statistics_entry)
                 break
         return views
@@ -240,16 +212,28 @@ class DaftExtractor:
             return response.css(selector).getall()
 
     @staticmethod
-    def _extract_quick_details(response: Response, detail_type: str) -> Optional[int]:
-        quick_details = DaftExtractor._extract_css_selector(
-            response, QUICK_DETAILS_SELECTOR, True)
-        detail_value = None
-        if quick_details:
-            for detail in quick_details:
-                if matcher := DaftExtractor._quick_details_regex.match(detail):
-                    if matcher.group(1) == detail_type:
-                        detail_value = int(matcher.group(2))
-        return detail_value
+    def extract_first_int(response: Response, selector: str, name: str) -> Optional[int]:
+        property_text = DaftExtractor._extract_css_selector(response, selector)
+        result = None
+        if property_text:
+            try:
+                result = int(property_text.split(' ')[0])
+            except ValueError as e:
+                raise ExtractorException(f'Error parsing {name}', property_text, e)
+
+        return result
+
+    @staticmethod
+    def extract_first_float(response: Response, selector: str, name: str) -> Optional[float]:
+        property_text = DaftExtractor._extract_css_selector(response, selector)
+        result = None
+        if property_text:
+            try:
+                result = float(property_text.split(' ')[0])
+            except ValueError as e:
+                raise ExtractorException(f'Error parsing {name}', property_text, e)
+
+        return result
 
 
 class ExtractorException(Exception):
