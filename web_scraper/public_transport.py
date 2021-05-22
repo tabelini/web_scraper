@@ -5,6 +5,7 @@ from typing import Tuple, List, Optional
 
 GREEN_LUAS = 'GREEN_LUAS'
 RED_LUAS = 'RED_LUAS'
+DART = 'DART'
 
 
 @dataclass
@@ -86,6 +87,38 @@ RED_LUAS_STATIONS: List[PublicTransportStation] = [
     PublicTransportStation('The Point', (53.3490747, -6.2328617), RED_LUAS),
 ]
 
+DART_STATIONS: List[PublicTransportStation] = [
+    PublicTransportStation('Bray', (53.2044668, -6.1012568), DART),
+    PublicTransportStation('Shankill', (53.2386463, -6.1176856), DART),
+    PublicTransportStation('Killiney', (53.2554508, -6.1167746), DART),
+    PublicTransportStation('Dalkey', (53.2752891, -6.1142485), DART),
+    PublicTransportStation('Glenageary', (53.2778661, -6.1198065), DART),
+    PublicTransportStation('Sandycove', (53.2890317, -6.1284262), DART),
+    PublicTransportStation('Dun Laoghaire', (53.2926074, -6.1339136), DART),
+    PublicTransportStation('Seapoint', (53.2991056, -6.167542), DART),
+    PublicTransportStation('Salthill & Monkstown', (53.2945641, -6.1456184), DART),
+    PublicTransportStation('Blackrock', (53.302784, -6.1783779), DART),
+    PublicTransportStation('Booterstown', (53.3070922, -6.1888063), DART),
+    PublicTransportStation('Sydney Parade', (53.3182583, -6.2083972), DART),
+    PublicTransportStation('Sandymount', (53.3263202, -6.2183535), DART),
+    PublicTransportStation('Lansdowne Road', (53.332143, -6.2270601), DART),
+    PublicTransportStation('Grand Canal Dock', (53.3397156, -6.2382291), DART),
+    PublicTransportStation('Pearse', (53.3430396, -6.2482087), DART),
+    PublicTransportStation('Connolly', (53.3516457, -6.2498175), DART),
+    PublicTransportStation('Clontarf', (53.3629739, -6.2294384), DART),
+    PublicTransportStation('Killester', (53.372898, -6.2064117), DART),
+    PublicTransportStation('Harmonstown', (53.378492, -6.1935371), DART),
+    PublicTransportStation('Raheny', (53.3809014, -6.182003), DART),
+    PublicTransportStation('Kilbarrack', (53.3874048, -6.1617308), DART),
+    PublicTransportStation('Howth Junction', (53.3910199, -6.1569565), DART),
+    PublicTransportStation('Bayside', (53.3915867, -6.1394425), DART),
+    PublicTransportStation('Sutton', (53.3917915, -6.1175879), DART),
+    PublicTransportStation('Howth', (53.3899151, -6.0761925), DART),
+    PublicTransportStation('Clongriffin', (53.4018585, -6.1495311), DART),
+    PublicTransportStation('Portmarnock', (53.4166819, -6.1510361), DART),
+    PublicTransportStation('Malahide', (53.4495703, -6.1584845), DART),
+]
+
 
 class PublicTransport:
 
@@ -98,6 +131,11 @@ class PublicTransport:
     def get_closest_red_luas(coords: Optional[str]) -> Tuple[PublicTransportStation, int]:
 
         return PublicTransport._get_closest_station(coords, RED_LUAS_STATIONS)
+
+    @staticmethod
+    def get_closest_dart(coords: Optional[str]) -> Tuple[PublicTransportStation, float]:
+
+        return PublicTransport._get_closest_station(coords, DART_STATIONS)
 
     @staticmethod
     def _get_closest_station(coords: Optional[str], stations: List[PublicTransportStation]) \

@@ -89,6 +89,7 @@ class DaftSaleUsedSpider(Spider):  # type: ignore
             'views': DaftExtractor.extract_views(response),
             'green_luas_distance_m': PublicTransport.get_closest_green_luas(geolocation_coords)[1],
             'red_luas_distance_m': PublicTransport.get_closest_red_luas(geolocation_coords)[1],
+            'dart_distance_m': PublicTransport.get_closest_dart(geolocation_coords)[1],
         }
 
     @staticmethod

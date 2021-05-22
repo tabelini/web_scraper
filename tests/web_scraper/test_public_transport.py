@@ -1,4 +1,4 @@
-from web_scraper.public_transport import PublicTransport, GREEN_LUAS_STATIONS, RED_LUAS_STATIONS
+from web_scraper.public_transport import PublicTransport, GREEN_LUAS_STATIONS, RED_LUAS_STATIONS, DART_STATIONS
 
 
 def test_get_closest_green_luas_should_return_the_closest_station():
@@ -34,4 +34,22 @@ def test_get_closest_red_luas_should_return_a_default_for_invalid_coords():
     result = PublicTransport.get_closest_red_luas(coords)
 
     assert result[0] == RED_LUAS_STATIONS[0]
+    assert result[1] == -1
+
+
+def test_get_closest_dart_should_return_the_closest_station():
+    coords = "53.2355839, -6.11813"
+
+    result = PublicTransport.get_closest_dart(coords)
+
+    assert result[0] == DART_STATIONS[1]
+    assert result[1] == 342
+
+
+def test_get_closest_dart_should_return_a_default_for_invalid_coords():
+    coords = None
+
+    result = PublicTransport.get_closest_dart(coords)
+
+    assert result[0] == DART_STATIONS[0]
     assert result[1] == -1
