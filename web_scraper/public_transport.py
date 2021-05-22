@@ -4,6 +4,7 @@ from geopy import distance
 from typing import Tuple, List, Optional
 
 GREEN_LUAS = 'GREEN_LUAS'
+RED_LUAS = 'RED_LUAS'
 
 
 @dataclass
@@ -50,6 +51,41 @@ GREEN_LUAS_STATIONS: List[PublicTransportStation] = [
     PublicTransportStation('Broombridge', (53.3722381, -6.299876), GREEN_LUAS),
 ]
 
+RED_LUAS_STATIONS: List[PublicTransportStation] = [
+    PublicTransportStation('Saggart', (53.2848375, -6.4364769), RED_LUAS),
+    PublicTransportStation('Fortunestown', (53.2847141, -6.4256355), RED_LUAS),
+    PublicTransportStation('Citywest Campus', (53.2869318, -6.4232664), RED_LUAS),
+    PublicTransportStation('Cheeverstown', (53.2902861, -6.4129345), RED_LUAS),
+    PublicTransportStation('Fettercairn', (53.2931207, -6.3982897), RED_LUAS),
+    PublicTransportStation('Tallaght', (53.2869703, -6.3756625), RED_LUAS),
+    PublicTransportStation('Tallaght Hospital', (53.2869703, -6.3756625), RED_LUAS),
+    PublicTransportStation('Cookstown', (53.2946085, -6.3837199), RED_LUAS),
+    PublicTransportStation('Belgard', (53.297571, -6.3799004), RED_LUAS),
+    PublicTransportStation('Kingswood', (53.3032775, -6.3690536), RED_LUAS),
+    PublicTransportStation('Red Cow', (53.3141305, -6.3681845), RED_LUAS),
+    PublicTransportStation('Kylemore', (53.3254869, -6.353132), RED_LUAS),
+    PublicTransportStation('Bluebell', (53.3296327, -6.3336162), RED_LUAS),
+    PublicTransportStation('Blackhorse', (53.3350338, -6.3293032), RED_LUAS),
+    PublicTransportStation('Drimnagh', (53.3355463, -6.3220506), RED_LUAS),
+    PublicTransportStation('Goldenbridge', (53.3359948, -6.313961), RED_LUAS),
+    PublicTransportStation('Suir Road', (53.3359948, -6.313961), RED_LUAS),
+    PublicTransportStation('Rialto', (53.3372312, -6.3018052), RED_LUAS),
+    PublicTransportStation('Fatima', (53.3375643, -6.2974279), RED_LUAS),
+    PublicTransportStation('James', (53.3408313, -6.297342), RED_LUAS),
+    PublicTransportStation('Heuston', (53.344681, -6.2942629), RED_LUAS),
+    PublicTransportStation('Museum', (53.3469227, -6.2894242), RED_LUAS),
+    PublicTransportStation('Smithfield', (53.3460773, -6.2828474), RED_LUAS),
+    PublicTransportStation('Four Courts', (53.3461349, -6.2767749), RED_LUAS),
+    PublicTransportStation('Jervis', (53.3465064, -6.2721722), RED_LUAS),
+    PublicTransportStation('Abbey Street', (53.3484022, -6.2629454), RED_LUAS),
+    PublicTransportStation('Busaras', (53.349523, -6.257581), RED_LUAS),
+    PublicTransportStation('Connolly', (53.3496831, -6.2545769), RED_LUAS),
+    PublicTransportStation('Georges Dock', (53.3496703, -6.2545233), RED_LUAS),
+    PublicTransportStation('Mayor Square', (53.3496703, -6.2473886), RED_LUAS),
+    PublicTransportStation('Spencer Dock', (53.349555, -6.2389343), RED_LUAS),
+    PublicTransportStation('The Point', (53.3490747, -6.2328617), RED_LUAS),
+]
+
 
 class PublicTransport:
 
@@ -57,6 +93,11 @@ class PublicTransport:
     def get_closest_green_luas(coords: Optional[str]) -> Tuple[PublicTransportStation, int]:
 
         return PublicTransport._get_closest_station(coords, GREEN_LUAS_STATIONS)
+
+    @staticmethod
+    def get_closest_red_luas(coords: Optional[str]) -> Tuple[PublicTransportStation, int]:
+
+        return PublicTransport._get_closest_station(coords, RED_LUAS_STATIONS)
 
     @staticmethod
     def _get_closest_station(coords: Optional[str], stations: List[PublicTransportStation]) \

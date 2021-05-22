@@ -87,7 +87,8 @@ class DaftSaleUsedSpider(Spider):  # type: ignore
             'description': DaftExtractor.extract_description(response),
             'updated_at': DaftExtractor.extract_updated_at(response),
             'views': DaftExtractor.extract_views(response),
-            'green_lucas_distance_m': PublicTransport.get_closest_green_luas(geolocation_coords)[1],
+            'green_luas_distance_m': PublicTransport.get_closest_green_luas(geolocation_coords)[1],
+            'red_luas_distance_m': PublicTransport.get_closest_red_luas(geolocation_coords)[1],
         }
 
     @staticmethod
