@@ -5,6 +5,8 @@ constantly==15.1.0
 coverage==5.0.4
 cryptography==2.9
 cssselect==1.1.0
+geographiclib==1.50
+geopy==2.1.0
 hyperlink==19.0.0
 idna==2.9
 incremental==17.5.0

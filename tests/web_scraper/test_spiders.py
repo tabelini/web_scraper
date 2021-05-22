@@ -235,7 +235,7 @@ def test_daft_sale_should_parse_the_region(extractor, daft_sale_used, response):
 @patch('web_scraper.spiders.DaftExtractor')
 def test_daft_sale_should_parse_the_geolocation(extractor, daft_sale_used, response):
     _assert_extractor_called(daft_sale_used, response, extractor.extract_geolocation,
-                             MAIN_ADDRESS_DISTRICT, 'geolocation')
+                             GEOLOCATION, 'geolocation')
 
 
 @patch('web_scraper.spiders.DaftExtractor')

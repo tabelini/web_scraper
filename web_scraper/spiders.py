@@ -4,6 +4,8 @@ from typing import Generator, Any, Dict, Optional
 from scrapy import Spider, Request
 from scrapy.http import Response
 
+from .public_transport import PublicTransport
+
 NEXT_PAGE_SELECTOR = '.next_page a::attr(href)'
 
 DUBLIN_CITY_SECTOR = 'Dublin City'
@@ -68,6 +70,8 @@ class DaftSaleUsedSpider(Spider):  # type: ignore
             yield Request(next_page_url, callback=self.parse)
 
     def parse_detailed_page(self, response: Response) -> Generator[Dict[str, Any], None, None]:
+        geolocation_coords = DaftExtractor.extract_geolocation(response)
+
         yield {
             'link': response.request.url,
             'property_type': DaftExtractor.extract_property_type(response),
@@ -79,10 +83,11 @@ class DaftSaleUsedSpider(Spider):  # type: ignore
             'main_address': DaftExtractor.extract_main_address(response),
             'sector': DaftExtractor.extract_sector(response),
             'region': DaftExtractor.extract_region(response),
-            'geolocation': DaftExtractor.extract_geolocation(response),
+            'geolocation': geolocation_coords,
             'description': DaftExtractor.extract_description(response),
             'updated_at': DaftExtractor.extract_updated_at(response),
             'views': DaftExtractor.extract_views(response),
+            'green_lucas_distance_m': PublicTransport.get_closest_green_luas(geolocation_coords)[1],
         }
 
     @staticmethod
@@ -112,7 +117,7 @@ class DaftExtractor:
             response, BER_RATING_ALT_SELECTOR))
 
         if ber_rating == BER_RATING_EXEMPT_CODE:
-            return
+            return None
 
         return ber_rating
 
