@@ -9,3 +9,12 @@ def test_get_closest_green_luas_should_return_the_closest_station():
     assert result[0] == GREEN_LUAS_STATIONS[1]
     assert result[1] == 40
 
+
+def test_get_closest_green_luas_should_return_a_default_for_invalid_coords():
+    coords = None
+
+    result = PublicTransport.get_closest_green_luas(coords)
+
+    assert result[0] == GREEN_LUAS_STATIONS[0]
+    assert result[1] == -1
+

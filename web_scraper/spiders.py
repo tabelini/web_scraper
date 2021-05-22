@@ -204,7 +204,7 @@ class DaftExtractor:
         views = None
         for statistics_entry in statistics_raw:
             if DaftExtractor._ONLY_NUMBERS_REGEX.match(statistics_entry):
-                statistics_entry = statistics_entry.replace(",","")
+                statistics_entry = statistics_entry.replace(",", "")
                 views = int(statistics_entry)
                 break
         return views

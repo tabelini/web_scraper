@@ -55,7 +55,13 @@ class PublicTransport:
 
     @staticmethod
     def get_closest_green_luas(coords: Optional[str]) -> Tuple[PublicTransportStation, int]:
-        default_result = GREEN_LUAS_STATIONS[0], -1
+
+        return PublicTransport._get_closest_station(coords, GREEN_LUAS_STATIONS)
+
+    @staticmethod
+    def _get_closest_station(coords: Optional[str], stations: List[PublicTransportStation]) \
+            -> Tuple[PublicTransportStation, int]:
+        default_result = stations[0], -1
 
         if not coords:
             return default_result
@@ -67,10 +73,10 @@ class PublicTransport:
 
         parsed_cords = (float(split_coords[0]), float(split_coords[1]))
 
-        closest_station: PublicTransportStation = GREEN_LUAS_STATIONS[0]
+        closest_station: PublicTransportStation = stations[0]
         closest_station_distance = PublicTransport._get_distance_to_station(closest_station, parsed_cords)
 
-        for station in GREEN_LUAS_STATIONS:
+        for station in stations:
             distance_to_station = PublicTransport._get_distance_to_station(station, parsed_cords)
             if distance_to_station < closest_station_distance:
                 closest_station_distance = distance_to_station
