@@ -6,8 +6,7 @@ import pytest
 from web_scraper.runner import USER_AGENT_SETTING
 from web_scraper.spiders import DaftSaleUsedSpider
 from web_scraper import Runner, WebSources
-
-AREAS_TO_LOOK = 'areas_to_look'
+AREAS_TO_LOOK = f"area1"
 MIN_PRICE = 1000
 MAX_PRICE = 10000
 MIN_BEDS = 2
@@ -47,14 +46,14 @@ def test_runner_should__not_start_the_crawler_for_unimplemented_operations(runne
 
 def test_runner_should_parse_daft_with_correct_areas(runner):
     args = runner.get_arg_parser().parse_args(args=['houses-for-sale',
-                                                    '--areas-string', AREAS_TO_LOOK,
+                                                    '--locations', AREAS_TO_LOOK,
                                                     '--min-price', str(MIN_PRICE),
                                                     '--max-price', str(MAX_PRICE),
                                                     '--min-beds', str(MIN_BEDS),
                                                     '--max-beds', str(MAX_BEDS)])
     runner.run(args)
     runner._process.crawl.assert_called_once_with(DaftSaleUsedSpider,
-                                                  areas_string=AREAS_TO_LOOK,
+                                                  locations=[AREAS_TO_LOOK],
                                                   min_price=MIN_PRICE,
                                                   max_price=MAX_PRICE,
                                                   min_beds=MIN_BEDS,

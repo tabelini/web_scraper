@@ -2,13 +2,13 @@ from typing import Any
 from unittest.mock import MagicMock, call, patch
 
 import pytest
+from scrapy import Selector
 from scrapy.http import Response
 
-from web_scraper.spiders import DaftSaleUsedSpider, DAFT_ADDRESS, DUBLIN_CITY, PROPERTIES_FOR_SALE, \
-    PROPERTY_CARD_SELECTOR, LINK_SELECTOR, DaftExtractor, PROPERTY_TYPE_SELECTOR, PRICE_SELECTOR, \
-    ExtractorException, FLOOR_AREA_SELECTOR, MAIN_ADDRESS_SELECTOR, STREET_VIEW_SELECTOR, \
-    DESCRIPTION_SELECTOR, STATISTICS_SELECTOR, NEXT_PAGE_SELECTOR, BER_RATING_ALT_SELECTOR, BEDS_SELECTOR, \
-    BATHS_SELECTOR
+from web_scraper.spiders import DaftSaleUsedSpider, DaftExtractor, ExtractorException, DAFT_ADDRESS, \
+    PROPERTIES_FOR_SALE, PROPERTY_CARD_SELECTOR, PROPERTY_TYPE_SELECTOR, PRICE_SELECTOR, \
+    FLOOR_AREA_SELECTOR, MAIN_ADDRESS_SELECTOR, STREET_VIEW_SELECTOR, DESCRIPTION_SELECTOR, STATISTICS_SELECTOR, \
+    BER_RATING_ALT_SELECTOR, BEDS_SELECTOR, BATHS_SELECTOR, PAGE_SIZE, DEFAULT_PAGE_SIZE, IRELAND_AREA
 
 NEXT_PAGE_FULL_ADDRESS = 'NEXT_PAGE_FULL_ADDRESS'
 
@@ -78,22 +78,23 @@ VIEWS = 2914
 
 URL = 'url'
 
-FULL_LINK_2 = 'http://site.com/link_2'
+SHORT_LINK_1 = '/link_1'
+SHORT_LINK_2 = '/link_2'
 
-FULL_LINK_1 = 'http://site.com/link_1'
+FULL_LINK_1 = DAFT_ADDRESS + SHORT_LINK_1
+FULL_LINK_2 = DAFT_ADDRESS + SHORT_LINK_2
 
-SHORT_LINK_1 = 'link_1'
-SHORT_LINK_2 = 'link_2'
-
-INITIAL_URL = DAFT_ADDRESS + DUBLIN_CITY + PROPERTIES_FOR_SALE
-INITIAL_ARGS = "/?ad_type=sale"
-INITIAL_AREAS = "dublin-2,dublin-3"
+INITIAL_URL = DAFT_ADDRESS + PROPERTIES_FOR_SALE
+INITIAL_ARGS = f"{PAGE_SIZE}={DEFAULT_PAGE_SIZE}&"
+INITIAL_AREA1 = "dublin-2-dublin"
+INITIAL_AREA2 = "dublin-3-dublin"
+INITIAL_AREAS_ARG = "location=dublin-2-dublin&location=dublin-3-dublin&"
 MIN_PRICE = 1000
 MAX_PRICE = 1000000
-MIN_AND_MAX_PRICE_URL = '&s%5Bmnp%5D=1000&s%5Bmxp%5D=1000000'
+MIN_AND_MAX_PRICE_URL = 'salePrice_from=1000&salePrice_to=1000000&'
 MIN_BEDS = 2
 MAX_BEDS = 4
-MIN_AND_MAX_BEDS_URL = '&s%5Bmnb%5D=2&s%5Bmxb%5D=4'
+MIN_AND_MAX_BEDS_URL = 'numBeds_from=2&numBeds_to=4&'
 
 
 @pytest.fixture
@@ -110,42 +111,38 @@ def response():
 
 @pytest.mark.parametrize("spider, expected_start_url", [
     (DaftSaleUsedSpider(),
-     INITIAL_URL + INITIAL_ARGS),
-    (DaftSaleUsedSpider(areas_string=INITIAL_AREAS),
-     INITIAL_URL + "/" + INITIAL_AREAS + INITIAL_ARGS),
+     INITIAL_URL + "/" + IRELAND_AREA + "?" + INITIAL_ARGS),
+    (DaftSaleUsedSpider(locations=[INITIAL_AREA1]),
+     INITIAL_URL + "/" + INITIAL_AREA1 + "?" + INITIAL_ARGS),
+    (DaftSaleUsedSpider(locations=[INITIAL_AREA1, INITIAL_AREA2]),
+     INITIAL_URL + "/" + IRELAND_AREA + "?" + INITIAL_AREAS_ARG + INITIAL_ARGS),
     (DaftSaleUsedSpider(min_price=MIN_PRICE, max_price=MAX_PRICE),
-     INITIAL_URL + INITIAL_ARGS + MIN_AND_MAX_PRICE_URL),
-    (DaftSaleUsedSpider(areas_string=INITIAL_AREAS, min_price=MIN_PRICE, max_price=MAX_PRICE),
-     INITIAL_URL + "/" + INITIAL_AREAS + INITIAL_ARGS + MIN_AND_MAX_PRICE_URL),
-    (DaftSaleUsedSpider(areas_string=INITIAL_AREAS, min_beds=MIN_BEDS, max_beds=MAX_BEDS),
-     INITIAL_URL + "/" + INITIAL_AREAS + INITIAL_ARGS + MIN_AND_MAX_BEDS_URL),
+     INITIAL_URL + "/" + IRELAND_AREA + "?" + INITIAL_ARGS + MIN_AND_MAX_PRICE_URL),
+    (DaftSaleUsedSpider(locations=[INITIAL_AREA1, INITIAL_AREA2], min_price=MIN_PRICE, max_price=MAX_PRICE),
+     INITIAL_URL + "/" + IRELAND_AREA + "?" + INITIAL_AREAS_ARG + INITIAL_ARGS + MIN_AND_MAX_PRICE_URL),
+    (DaftSaleUsedSpider(locations=[INITIAL_AREA1, INITIAL_AREA2], min_beds=MIN_BEDS, max_beds=MAX_BEDS),
+     INITIAL_URL + "/" + IRELAND_AREA + "?" + INITIAL_AREAS_ARG + INITIAL_ARGS + MIN_AND_MAX_BEDS_URL),
 ])
 def test_daft_sale_used_spider_init(spider, expected_start_url):
     assert spider.start_urls == [expected_start_url]
+    assert spider.start_from == 0
 
 
 @patch('web_scraper.spiders.Request')
 def test_daft_sale_should_parse_property_cards(request_mock, daft_sale_used):
     mock_list_response = MagicMock()
-    property1 = _generate_response_for_css_selector(SHORT_LINK_1)
-    property2 = _generate_response_for_css_selector(SHORT_LINK_2)
-    next_page_css = MagicMock()
-    next_page_css.get.return_value = None
+    property1 = _generate_selector(SHORT_LINK_1)
+    property2 = _generate_selector(SHORT_LINK_2)
 
-    mock_list_response.css.side_effect = [[property1, property2], next_page_css]
-    mock_list_response.urljoin.side_effect = [FULL_LINK_1, FULL_LINK_2]
+    mock_list_response.css.side_effect = [[property1, property2], []]
 
-    detailed_request_generator = daft_sale_used.parse(mock_list_response)
-
-    results = [value for value in detailed_request_generator]
-    assert len(results) == 2
+    results = _get_results_from_parsing_response(daft_sale_used, mock_list_response)
+    assert len(results) == 3
 
     mock_list_response.css.assert_has_calls(
-        [call(PROPERTY_CARD_SELECTOR), call(NEXT_PAGE_SELECTOR)])
-    property1.css.assert_called_once_with(LINK_SELECTOR)
-    property2.css.assert_called_once_with(LINK_SELECTOR)
-
-    mock_list_response.urljoin.assert_has_calls([call(SHORT_LINK_1), call(SHORT_LINK_2)])
+        [call(PROPERTY_CARD_SELECTOR)])
+    property1.get.assert_called_once()
+    property2.get.assert_called_once()
 
     request_mock.assert_has_calls([call(FULL_LINK_1, callback=daft_sale_used.parse_detailed_page),
                                    call(FULL_LINK_2, callback=daft_sale_used.parse_detailed_page)])
@@ -154,18 +151,21 @@ def test_daft_sale_should_parse_property_cards(request_mock, daft_sale_used):
 @patch('web_scraper.spiders.Request')
 def test_daft_sale_should_try_to_parse_next_page(request_mock, daft_sale_used):
     mock_list_response = MagicMock()
-    next_page_css = MagicMock()
-    next_page_css.get.return_value = NEXT_PAGE_ADDRESS
-    mock_list_response.css.side_effect = [[], next_page_css]
-    mock_list_response.urljoin.side_effect = [NEXT_PAGE_FULL_ADDRESS]
+    property1 = _generate_selector(SHORT_LINK_1)
+    property2 = _generate_selector(SHORT_LINK_2)
 
-    detailed_request_generator = daft_sale_used.parse(mock_list_response)
-    results = [value for value in detailed_request_generator]
+    mock_list_response.css.side_effect = [[property1, property2], []]
 
-    mock_list_response.css.assert_has_calls(
-        [call(PROPERTY_CARD_SELECTOR), call(NEXT_PAGE_SELECTOR)])
-    mock_list_response.urljoin.assert_has_calls([call(NEXT_PAGE_ADDRESS)])
-    request_mock.assert_called_once_with(NEXT_PAGE_FULL_ADDRESS, callback=daft_sale_used.parse)
+    results = _get_results_from_parsing_response(daft_sale_used, mock_list_response)
+    assert len(results) == 3
+
+    request_mock.assert_has_calls([call(
+        daft_sale_used.base_url + daft_sale_used.base_url_args + f"from={DEFAULT_PAGE_SIZE}&",
+        callback=daft_sale_used.parse)])
+
+    # stops on the second page since there is nothing on the page
+    results = _get_results_from_parsing_response(daft_sale_used, mock_list_response)
+    assert len(results) == 0
 
 
 @patch('web_scraper.spiders.DaftExtractor')
@@ -372,6 +372,13 @@ def test_daft_extractor_should_extract_views(raw_value, expected_value):
                                 STATISTICS_SELECTOR, raw_value, expected_value)
 
 
+def _generate_selector(result: Any):
+    response = MagicMock(Selector)
+    response.get.return_value = result
+
+    return response
+
+
 def _generate_response_for_css_selector(result: Any):
     response = MagicMock(Response)
     css_result = MagicMock()
@@ -408,3 +415,9 @@ def _assert_parsed_by_extractor(extractor, selector, raw_value, expected_value,
             extractor(response)
 
     response.css.assert_called_once_with(selector)
+
+
+def _get_results_from_parsing_response(daft_sale_used, mock_list_response):
+    detailed_request_generator = daft_sale_used.parse(mock_list_response)
+    results = [value for value in detailed_request_generator]
+    return results

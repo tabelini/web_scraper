@@ -22,16 +22,17 @@ class Runner:
         parser = ArgumentParser(description='Extract data from some websites.',
                                 prog='web-acraper',
                                 usage='web-scraper houses-for-sale '
-                                      '--areas-string "dublin-4,dublin-6"')
+                                      '--locations "dublin-4-dublin dublin-6-dublin"')
         sub_parsers = parser.add_subparsers(title='Avalilable crawlers', required=True)
         parser_houses_for_sale = sub_parsers.add_parser('houses-for-sale',
                                                         help='scrape for used houses for sale data')
         parser_houses_for_sale.set_defaults(source=WebSources.HOUSES_FOR_SALE, type=WebSources)
-        parser_houses_for_sale.add_argument('--areas-string', type=str,
+        parser_houses_for_sale.add_argument('--locations', type=str, nargs="+",
+                                            default=["dublin-4-dublin", "dublin-6-dublin"],
                                             help='Areas that you are looking for, this is contained'
-                                                 ' on the url of the Daft.ie after an advanced'
-                                                 ' search selecting the areas of interest.'
-                                                 'i.e: "dublin-1,dublin-2"')
+                                                 ' on the url of the Daft.ie on the location parameter after a'
+                                                 ' search selecting the areas of interest'
+                                                 'i.e: "dublin-4-dublin dublin-6-dublin"')
         parser_houses_for_sale.add_argument('--min-price', type=int,
                                             help='Minimum price to be searched for.')
         parser_houses_for_sale.add_argument('--max-price', type=int,
@@ -59,7 +60,7 @@ class Runner:
     def run(self, args: Namespace) -> None:
         if args.source == WebSources.HOUSES_FOR_SALE:
             self._process.crawl(DaftSaleUsedSpider,
-                                areas_string=args.areas_string,
+                                locations=args.locations,
                                 min_price=args.min_price,
                                 max_price=args.max_price,
                                 min_beds=args.min_beds,

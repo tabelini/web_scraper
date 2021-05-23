@@ -1,25 +1,25 @@
 import re
-from typing import Generator, Any, Dict, Optional
+from typing import Generator, Any, Dict, Optional, List
 
 from scrapy import Spider, Request
 from scrapy.http import Response
 
 from .public_transport import PublicTransport
 
-NEXT_PAGE_SELECTOR = '.next_page a::attr(href)'
+IRELAND_AREA = "ireland"
+
+PAGE_SIZE = 'pageSize'
 
 DUBLIN_CITY_SECTOR = 'Dublin City'
 
 BER_RATING_EXEMPT_CODE = 'SI_666'
 BER_RATING_EXEMPT = None
 
-PROPERTY_CARD_SELECTOR = ".PropertyCardContainer__container "
+PROPERTY_CARD_SELECTOR = 'li[data-testid^="result"] > a::attr(href)'
 
 DAFT_ADDRESS = "https://www.daft.ie"
-DUBLIN_CITY = "/dublin-city"
 PROPERTIES_FOR_SALE = "/property-for-sale"
 
-LINK_SELECTOR = ".PropertyInformationCommonStyles__addressCopy--link::attr(href)"
 PROPERTY_TYPE_SELECTOR = 'p[data-testid="property-type"]::text'
 MAIN_ADDRESS_SELECTOR = 'h1[data-testid="address"]::text'
 BER_RATING_ALT_SELECTOR = 'div[data-testid="ber"] > img::attr(alt)'
@@ -31,12 +31,14 @@ STREET_VIEW_SELECTOR = 'a[data-testid="streetview-button"]::attr(href)'
 DESCRIPTION_SELECTOR = 'div[data-testid="description"]::text'
 STATISTICS_SELECTOR = 'div[data-testid="statistics"] > div > div > div > p::text'
 
+DEFAULT_PAGE_SIZE = 20
+
 
 class DaftSaleUsedSpider(Spider):  # type: ignore
     name = "DaftSaleUsed"
 
     def __init__(self,
-                 areas_string: Optional[str] = None,
+                 locations: List[str] = None,
                  min_price: Optional[int] = None,
                  max_price: Optional[int] = None,
                  min_beds: Optional[int] = None,
@@ -44,29 +46,45 @@ class DaftSaleUsedSpider(Spider):  # type: ignore
                  ) -> None:
         super(DaftSaleUsedSpider, self).__init__()
 
-        initial_url = DAFT_ADDRESS + DUBLIN_CITY + PROPERTIES_FOR_SALE
+        initial_url = DAFT_ADDRESS + PROPERTIES_FOR_SALE
 
-        if areas_string:
-            initial_url += "/" + areas_string
+        url_args = "?"
+        initial_location = IRELAND_AREA
+        if not locations:
+            pass
+        elif len(locations) < 2:
+            if len(locations) == 1:
+                initial_location = locations[0]
+        else:
+            for location in locations:
+                url_args += DaftSaleUsedSpider._url_arg("location", location.strip())
 
-        url_args = "/?ad_type=sale"
+        initial_url += f"/{initial_location}"
+        self.base_url = initial_url
 
-        url_args += DaftSaleUsedSpider._url_arg('mnp', min_price)
-        url_args += DaftSaleUsedSpider._url_arg('mxp', max_price)
-        url_args += DaftSaleUsedSpider._url_arg('mnb', min_beds)
-        url_args += DaftSaleUsedSpider._url_arg('mxb', max_beds)
+        url_args += DaftSaleUsedSpider._url_arg(PAGE_SIZE, DEFAULT_PAGE_SIZE)
+        url_args += DaftSaleUsedSpider._url_arg('salePrice_from', min_price)
+        url_args += DaftSaleUsedSpider._url_arg('salePrice_to', max_price)
+        url_args += DaftSaleUsedSpider._url_arg('numBeds_from', min_beds)
+        url_args += DaftSaleUsedSpider._url_arg('numBeds_to', max_beds)
+        self.base_url_args = url_args
+        self.start_from = 0
 
-        self.start_urls = [initial_url + url_args]
+        url_args += DaftSaleUsedSpider._url_arg('from', self.start_from)
+
+        self.start_urls = [self.base_url + url_args]
+        print(f"Defined start url as: '{self.start_urls}'")
 
     def parse(self, response: Response) -> Generator[Request, None, None]:
-        for daft_property in response.css(PROPERTY_CARD_SELECTOR):
-            detailed_link = response.urljoin(daft_property.css(LINK_SELECTOR).get())
+        properties_response = response.css(PROPERTY_CARD_SELECTOR)
+        for daft_property in properties_response:
+            partial_url = daft_property.get()
+            detailed_link = DAFT_ADDRESS + partial_url
             yield Request(detailed_link, callback=self.parse_detailed_page)
 
-        next_page = response.css(NEXT_PAGE_SELECTOR).get()
-        print(next_page)
-        if next_page:
-            next_page_url = response.urljoin(next_page)
+        if properties_response:
+            self.start_from += DEFAULT_PAGE_SIZE
+            next_page_url = self.base_url + self.base_url_args + DaftSaleUsedSpider._url_arg("from", self.start_from)
             yield Request(next_page_url, callback=self.parse)
 
     def parse_detailed_page(self, response: Response) -> Generator[Dict[str, Any], None, None]:
@@ -95,7 +113,7 @@ class DaftSaleUsedSpider(Spider):  # type: ignore
     @staticmethod
     def _url_arg(arg_name: str, arg_value: Any) -> str:
         if arg_value:
-            return f'&s%5B{arg_name}%5D={arg_value}'
+            return f'{arg_name}={arg_value}&'
         else:
             return ''
 
